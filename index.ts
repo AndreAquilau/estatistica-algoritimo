@@ -1,84 +1,101 @@
-import { table } from "node:console";
-
 const dados: number[] = [
     4, 8, 12, 3, 4, 32, 10, 5, 30, 12,
     6, 18, 34, 7, 17, 45, 8, 16, 43, 12,
     10, 21, 34, 1, 18, 21, 9, 15, 10, 8
 ];
 
+let jump = 0;
+let maxNumber = 0;
+let minNumber = 0;
+let isPar = false;
 
-const maxNumber = (numbers: number[]) => Math.max(...numbers);
-const minNumber = (numbers: number[]) => Math.min(...numbers);
-
-
-const R: number = maxNumber(dados) - minNumber(dados);
+const R: number = returnMaxNumber(dados) - returnMinNumber(dados);
 const K: number = Math.ceil(Math.sqrt(dados.length));
+const H = interval();
 
+function returnMaxNumber(numbers: number[]) {
+    const number = Math.max(...numbers);
+    return number;
+}
 
+function returnMinNumber(numbers: number[]) {
+    const number = Math.min(...numbers);
+    return number;
+}
 
-let saldo = 0;
-let maxNumberWithSalt = 0;
-let minNumberWithSalt = 0;
-let ajusteParaPar = false; 
+function verifyPar() {
 
+    if(!(maxNumber % 2 === 0)){
+        ++maxNumber;
+        ++minNumber;
+        isPar = true;
+    }
 
+}
 
-const H: () => Promise<number> = async () => {
+function verifySalt() {
+    if(jump > 0) {
+        maxNumber = returnMaxNumber(dados) + jump/ 2;
+        minNumber = returnMinNumber(dados) - jump/ 2;
+        if(!(maxNumber % 2 === 0)){
+            ++maxNumber;
+            ++minNumber;
+            isPar = true;
+        }
+    } else {
+        if(!(maxNumber % 2 === 0)){
+            ++maxNumber;
+            ++minNumber;
+            isPar = true;
+        }
+    }
+}
+
+async function interval() {
+    
     let result = 0;
     let RGeneric = R;
     
     do {  
         result = (RGeneric)/K;
         if(!Number.isInteger(result)) {
-            ++saldo
+            ++jump
             ++RGeneric;
         };
-        //console.log(RGeneric);
+
     } while (!Number.isInteger(result));
     
-    //console.log(result, saldo);      
-    //console.log(Number.isInteger(result));
-    ajusteSaldo();
+    verifySalt();
     
     return (result);
 }
 
-function ajusteSaldo() {
-    if(saldo > 0) {
-        maxNumberWithSalt = maxNumber(dados) + saldo/ 2;
-        minNumberWithSalt = minNumber(dados) - saldo/ 2;
-        if(!(maxNumberWithSalt % 2 === 0)){
-            ++maxNumberWithSalt;
-            ++minNumberWithSalt;
-            ajusteParaPar = true;
-        }
-    }
-}
-
-function numeroPorIntervalo(start: number, end: number): number {
-    //console.log(start, end);
-    const res = dados.filter((value) => {
+function numberForInterval(start: number, end: number): number {
+    
+    const length = dados.filter((value) => {
         return (value >= start && value < end);
-    })
-    return res.length;
+    }).length;
+
+    return length;
 }
 
 async function createTable(min: number) {
 
-    let h = await H();
+    let h = await H;
+
+    let acc = await H;
 
     const table = new Array(K).fill([], 0, K);
 
-    let acc = h;
 
-    const newTable = await table.map(async (value, index, array) => {
+    const newTable = table.map(async (value, index, array) => {
         if(index === 0) {
-            //console.log(index)
+           
             return [
                 `Classe ${++index}`,
                 min,
                 min + h,
-                numeroPorIntervalo(min, min + h)
+                numberForInterval(min, min + h)
             ]
         } else {
             //console.log(index)
@@ -86,7 +103,7 @@ async function createTable(min: number) {
                 `Classe ${++index}`, 
                 (acc),  
                 (acc = acc + h),
-                numeroPorIntervalo(acc - h, acc)
+                numberForInterval(acc - h, acc)
             ]
         }
     })
@@ -95,23 +112,31 @@ async function createTable(min: number) {
 }
 
 async function main() {
-    let h = await H();
+    let h = await H;
     console.log(dados.join());
-    console.log(`Número Máximo: ${maxNumber(dados)}`);
-    console.log(`Número Mínimo: ${minNumber(dados)}`);
+    console.log(`Número Máximo: ${returnMaxNumber(dados)}`);
+    console.log(`Número Mínimo: ${returnMinNumber(dados)}`);
     console.log(`Valor R: ${R} `);
     console.log(`Valor K: ${K} `);
     console.log(`Valor H: ${h} `);
-    console.log(`Saldo: ${saldo}`);   
-    if(saldo > 0) {
-        console.log(`Número Máximo Com Saldo: ${maxNumberWithSalt}`);
-        console.log(`Número Mínimo Sem Saldo: ${minNumberWithSalt}`);
-        if(ajusteParaPar) {
+    console.log(`Saldo: ${jump}`);   
+    if(jump> 0) {
+        console.log(`Número Máximo Com Saldo: ${returnMaxNumber(dados)}`);
+        console.log(`Número Mínimo Sem Saldo: ${returnMinNumber(dados)}`);
+        if(isPar) {
             console.log(`Teve Ajuste Para Par +1 no Máximo e no Mínimo`);
         }
-        const table = await createTable(minNumberWithSalt);
+        const table = await createTable(returnMinNumber(dados));
         console.log(table);
         
+    } else {
+        console.log(`Número Máximo : ${returnMaxNumber(dados)}`);
+        console.log(`Número Mínimo : ${returnMinNumber(dados)}`);
+        if(isPar) {
+            console.log(`Teve Ajuste Para Par +1 no Máximo e no Mínimo`);
+        }
+        const table = await createTable(returnMinNumber(dados));
+        console.log(table);
     }
     
 }
